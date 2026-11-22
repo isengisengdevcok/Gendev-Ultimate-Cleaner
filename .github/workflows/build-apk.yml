@@ -1,3 +1,4 @@
+
 name: Build & Release Android APK
 
 on:
@@ -5,12 +6,14 @@ on:
     branches:
       - main
       - master
+
   workflow_dispatch:
     inputs:
       release_title:
         description: "Judul pembaruan opsional (kosongkan untuk memakai judul commit)"
         required: false
         default: ""
+
       release_description:
         description: "Deskripsi pembaruan opsional (kosongkan untuk memakai deskripsi commit / metadata.json)"
         required: false
@@ -27,28 +30,60 @@ jobs:
   build_and_release:
     name: Build APK & Sinkronisasi Rilis
     runs-on: ubuntu-latest
+
     if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
 
     steps:
+      # 1. Checkout Repository
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 15
 
+      # 2. Setup Java 17
       - name: Setup Java 17 (Temurin)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
+      # 3. Setup Android SDK - FIXED
       - name: Setup Android SDK & Lisensi
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: platform-tools
+          accept-android-sdk-licenses: true
 
+      # 4. Install Android SDK 36.1
+      - name: Install Android SDK Platform 36.1
+        run: |
+          set -e
+          sdkmanager --install "platforms;android-36.1"
+
+      # 5. Verify Android SDK
+      - name: Verify Android SDK
+        run: |
+          set -e
+
+          echo "===== JAVA VERSION ====="
+          java -version
+
+          echo "===== ANDROID SDK ====="
+          echo "ANDROID_HOME=$ANDROID_HOME"
+
+          sdkmanager --list_installed
+
+          test -f "$ANDROID_HOME/platforms/android-36.1/android.jar"
+
+          echo "ANDROID SDK 36.1 READY"
+
+      # 6. Prepare Debug Keystore
       - name: Siapkan Debug Keystore Konsisten
         run: |
           if [ -f debug.keystore.base64 ]; then
             base64 -d debug.keystore.base64 > debug.keystore
             echo "debug.keystore berhasil dipulihkan dari debug.keystore.base64"
+
           elif [ ! -f debug.keystore ]; then
             keytool -genkeypair -v -keystore debug.keystore \
               -storepass android -alias androiddebugkey -keypass android \
@@ -56,6 +91,7 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 
+      # 7. Prepare Release Keystore
       - name: Siapkan Release Keystore (Opsional via Secrets)
         id: release_signing
         env:
@@ -63,54 +99,85 @@ jobs:
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
+          if [ -n "$KEYSTORE_BASE64" ] && \
+             [ -n "$STORE_PASSWORD" ] && \
+             [ -n "$KEY_PASSWORD" ]; then
+
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
+
+            test -s my-upload-key.jks
+
             echo "has_release_key=true" >> "$GITHUB_OUTPUT"
-            echo "Release keystore ditemukan di GitHub Secrets."
+            echo "Release keystore ditemukan."
+
           else
             echo "has_release_key=false" >> "$GITHUB_OUTPUT"
-            echo "GitHub Secrets keystore release belum diatur; menggunakan Debug APK siap-install."
+            echo "Menggunakan Debug APK."
           fi
 
+      # 8. Setup Gradle
       - name: Setup Gradle 9.3.1 & Cache
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "9.3.1"
 
+      # 9. Verify Gradle
+      - name: Verify Gradle Environment
+        run: |
+          java -version
+          gradle --version
+
+      # 10. Run Unit Tests
       - name: Jalankan Unit Test (Robolectric)
-        run: gradle :app:testDebugUnitTest --no-daemon
+        run: |
+          gradle :app:testDebugUnitTest --no-daemon
 
+      # 11. Build Debug APK
       - name: Build Debug APK
-        run: gradle :app:assembleDebug --no-daemon
+        run: |
+          gradle :app:assembleDebug --no-daemon
 
+      # 12. Build Release APK
       - name: Build Release APK (Jika Secret Keystore Tersedia)
         if: steps.release_signing.outputs.has_release_key == 'true'
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
           STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: gradle :app:assembleRelease --no-daemon
+        run: |
+          gradle :app:assembleRelease --no-daemon
 
+      # 13. Integrate Metadata
       - name: Integrasikan Judul, Deskripsi, & README.md
         id: sync_meta
         env:
           INPUT_TITLE: ${{ github.event.inputs.release_title }}
           INPUT_DESCRIPTION: ${{ github.event.inputs.release_description }}
-        run: python3 .github/scripts/update_release_metadata.py
+        run: |
+          python3 .github/scripts/update_release_metadata.py
 
+      # 14. Update README
       - name: Simpan Pembaruan README.md ke Repository
         run: |
           if ! git diff --quiet README.md; then
+
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
             git add README.md
+
             git commit -m "chore(docs): integrasi rilis ${{ steps.sync_meta.outputs.release_tag }} ke README.md [skip ci]"
+
             git pull --rebase origin "${GITHUB_REF_NAME}" || true
-            git push origin "HEAD:${GITHUB_REF_NAME}" || echo "Catatan: Aktifkan Workflow Read and write permissions di Settings -> Actions agar README.md otomatis ter-push."
+
+            git push origin "HEAD:${GITHUB_REF_NAME}" || \
+              echo "Catatan: Periksa Workflow Read and write permissions."
+
           else
             echo "README.md sudah sinkron."
           fi
 
+      # 15. Upload APK Artifacts
       - name: Upload APK ke Workflow Artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -118,6 +185,7 @@ jobs:
           path: dist-apk/*.apk
           retention-days: 30
 
+      # 16. Publish GitHub Release
       - name: Publikasikan GitHub Release dengan APK
         uses: softprops/action-gh-release@v2
         with:
@@ -127,3 +195,4 @@ jobs:
           files: ${{ steps.sync_meta.outputs.apk_glob }}
           draft: false
           prerelease: false
+          
