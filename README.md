@@ -1,11 +1,13 @@
 <!-- AUTO_META_START -->
 # Ultimate Cleaner — Root Edition (by Gendev)
 
-> **Pembersih & pengoptimal Android Root (`su -c`) & Non-Root oleh Gendev — dilengkapi WhatsApp Deep Root Cleaner aman akun, Anti-Recovery Shredder, Zero-Trace, AI Storage Hub, dan Pembersih Otomatis.**
+> **Pembersih & pengoptimal Android Root (su -c) & Non-Root oleh Gendev — dilengkapi WhatsApp Deep Root Cleaner aman akun, Anti-Recovery Shredder, Zero-Trace, AI Storage Hub, dan Pembersih Otomatis.**
 
-- **Versi Rilis Terbaru:** `v1.0` (siap build otomatis via GitHub Actions)
-- **Target Perangkat Optimal:** Android 8.0+ (teruji untuk OPPO A16 / Android 11)
-- **Download APK Terbaru:** Cek tab **Releases** atau **Actions → Build & Release Android APK** di repositori GitHub ini
+[![Build & Release APK](https://github.com/isengisengdevcok/Gendev-Ultimate-Cleaner/actions/workflows/build-apk.yml/badge.svg)](https://github.com/isengisengdevcok/Gendev-Ultimate-Cleaner/actions/workflows/build-apk.yml) [![Latest APK](https://img.shields.io/badge/Download_APK-v1.0.2-22C55E?style=flat-square&logo=android)](https://github.com/isengisengdevcok/Gendev-Ultimate-Cleaner/releases/latest)
+
+- **Versi Rilis Terbaru:** `v1.0.2` (versionCode `1`, commit `5f5519f`)
+- **Judul Pembaruan Terakhir:** Update build-apk.yml
+- **Download APK Terbaru:** [**Unduh dari GitHub Releases (v1.0.2-5f5519f)**](https://github.com/isengisengdevcok/Gendev-Ultimate-Cleaner/releases/latest)
 <!-- AUTO_META_END -->
 
 ---
@@ -60,7 +62,22 @@ Setiap kali Anda melakukan **commit** atau menjalankan workflow manual:
 - **Nama & Deskripsi Aplikasi** disinkronkan langsung dari `metadata.json`.
 
 <!-- AUTO_CHANGELOG_START -->
-### Rilis Terbaru: Menunggu Build Pertama di GitHub Actions
+### Rilis Terbaru: `v1.0.2-5f5519f` (2026-11-22 03:07 UTC)
 
-Setelah Anda mengunggah repositori ini ke GitHub dan mengaktifkan GitHub Actions, bagian ini akan terisi otomatis oleh setiap build APK baru lengkap dengan tautan unduhan, checksum SHA-256, judul rilis, deskripsi, dan 10 commit terakhir.
+- **Judul Pembaruan:** Update build-apk.yml
+- **Deskripsi Pembaruan:** Pembersih & pengoptimal Android Root (su -c) & Non-Root oleh Gendev — dilengkapi WhatsApp Deep Root Cleaner aman akun, Anti-Recovery Shredder, Zero-Trace, AI Storage Hub, dan Pembersih Otomatis.
+- **Tautan Rilis:** [https://github.com/isengisengdevcok/Gendev-Ultimate-Cleaner/releases/tag/v1.0.2-5f5519f](https://github.com/isengisengdevcok/Gendev-Ultimate-Cleaner/releases/tag/v1.0.2-5f5519f)
+
+| Varian APK | Nama Berkas | Ukuran | SHA-256 |
+|---|---|---|---|
+| Debug (Siap Install / Signature Konsisten) | `UltimateCleaner-v1.0.2-debug.apk` | 19.10 MB | `0889f05139799ce5...` |
+
+#### 10 Pembaruan Commit Terakhir
+
+| Commit | Tanggal | Ringkasan Pembaruan |
+|---|---|---|
+| `5f5519f` | 2026-11-22 | Update build-apk.yml |
+| `e6a78c2` | 2026-11-22 | feat: add automated release pipeline and metadata |
+| `99e3f50` | 2026-11-22 | feat: implement core UI, theme, and testing |
+| `aa617bb` | 2026-11-22 | Initial commit |
 <!-- AUTO_CHANGELOG_END -->
