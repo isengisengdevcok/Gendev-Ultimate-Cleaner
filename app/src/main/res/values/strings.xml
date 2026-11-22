@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">Ultimate Cleaner</string>
+    <string name="app_edition_subtitle">ROOT EDITION</string>
+    <string name="quick_tile_label">Quick Clean</string>
+    <string name="root_status_connected">CONNECTED</string>
+    <string name="root_status_disconnected">DISCONNECTED</string>
+    <string name="root_status_granted">ROOT GRANTED</string>
+    <string name="root_status_denied">ROOT DENIED</string>
+    <string name="action_clean_now">CLEAN NOW</string>
+    <string name="action_deep_clean">DEEP CLEAN</string>
+    <string name="action_sync_storage">SYNC STORAGE</string>
+    <string name="action_trim_storage">TRIM STORAGE</string>
+    <string name="action_clear_app_cache">CLEAR APP CACHE</string>
+    <string name="action_refresh_system_info">REFRESH SYSTEM INFO</string>
+    <string name="action_optimize_art">OPTIMIZE ART</string>
+    <string name="nav_dashboard">Home</string>
+    <string name="nav_cleaner">Cleaner</string>
+    <string name="nav_legacy">Legacy</string>
+    <string name="nav_performance">Perf</string>
+    <string name="nav_terminal">Logs</string>
+    <string name="nav_automation">Auto</string>
+    <string name="nav_settings">Settings</string>
+    <string name="legacy_confirm_keyword">HAPUS</string>
+    <string name="notification_channel_automation">Layanan Otomatisasi Sistem</string>
+    <string name="notification_automation_title">Ultimate Cleaner Monitor</string>
+    <string name="notification_automation_text">Pemantauan pemicu pembersihan cache aktif</string>
+</resources>

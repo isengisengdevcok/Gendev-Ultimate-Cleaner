@@ -1,0 +1,6 @@
+{
+  "name": "Ultimate Cleaner",
+  "description": "Standalone root-powered Android system cleaner, legacy cleaner, performance monitor, and real-time terminal logger via su -c.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
