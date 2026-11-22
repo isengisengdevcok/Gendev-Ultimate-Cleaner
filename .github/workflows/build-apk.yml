@@ -1,0 +1,129 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      release_title:
+        description: "Judul pembaruan opsional (kosongkan untuk memakai judul commit)"
+        required: false
+        default: ""
+      release_description:
+        description: "Deskripsi pembaruan opsional (kosongkan untuk memakai deskripsi commit / metadata.json)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build_and_release:
+    name: Build APK & Sinkronisasi Rilis
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message, '[skip ci]')
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 15
+
+      - name: Setup Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK & Lisensi
+        uses: android-actions/setup-android@v3
+
+      - name: Siapkan Debug Keystore Konsisten
+        run: |
+          if [ -f debug.keystore.base64 ]; then
+            base64 -d debug.keystore.base64 > debug.keystore
+            echo "debug.keystore berhasil dipulihkan dari debug.keystore.base64"
+          elif [ ! -f debug.keystore ]; then
+            keytool -genkeypair -v -keystore debug.keystore \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Siapkan Release Keystore (Opsional via Secrets)
+        id: release_signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
+            echo "has_release_key=true" >> "$GITHUB_OUTPUT"
+            echo "Release keystore ditemukan di GitHub Secrets."
+          else
+            echo "has_release_key=false" >> "$GITHUB_OUTPUT"
+            echo "GitHub Secrets keystore release belum diatur; menggunakan Debug APK siap-install."
+          fi
+
+      - name: Setup Gradle 9.3.1 & Cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+
+      - name: Jalankan Unit Test (Robolectric)
+        run: gradle :app:testDebugUnitTest --no-daemon
+
+      - name: Build Debug APK
+        run: gradle :app:assembleDebug --no-daemon
+
+      - name: Build Release APK (Jika Secret Keystore Tersedia)
+        if: steps.release_signing.outputs.has_release_key == 'true'
+        env:
+          KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle :app:assembleRelease --no-daemon
+
+      - name: Integrasikan Judul, Deskripsi, & README.md
+        id: sync_meta
+        env:
+          INPUT_TITLE: ${{ github.event.inputs.release_title }}
+          INPUT_DESCRIPTION: ${{ github.event.inputs.release_description }}
+        run: python3 .github/scripts/update_release_metadata.py
+
+      - name: Simpan Pembaruan README.md ke Repository
+        run: |
+          if ! git diff --quiet README.md; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore(docs): integrasi rilis ${{ steps.sync_meta.outputs.release_tag }} ke README.md [skip ci]"
+            git pull --rebase origin "${GITHUB_REF_NAME}" || true
+            git push origin "HEAD:${GITHUB_REF_NAME}" || echo "Catatan: Aktifkan Workflow Read and write permissions di Settings -> Actions agar README.md otomatis ter-push."
+          else
+            echo "README.md sudah sinkron."
+          fi
+
+      - name: Upload APK ke Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: UltimateCleaner-APK-${{ steps.sync_meta.outputs.release_tag }}
+          path: dist-apk/*.apk
+          retention-days: 30
+
+      - name: Publikasikan GitHub Release dengan APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.sync_meta.outputs.release_tag }}
+          name: ${{ steps.sync_meta.outputs.release_title }}
+          body_path: .github/release_notes.md
+          files: ${{ steps.sync_meta.outputs.apk_glob }}
+          draft: false
+          prerelease: false
